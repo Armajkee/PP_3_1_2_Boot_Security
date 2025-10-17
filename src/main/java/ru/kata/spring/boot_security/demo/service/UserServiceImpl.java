@@ -1,68 +1,84 @@
 package ru.kata.spring.boot_security.demo.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.*;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import javax.persistence.*;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.kata.spring.boot_security.demo.model.User;
 import ru.kata.spring.boot_security.demo.repository.UserRepository;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 @Transactional
 public class UserServiceImpl implements UserService, UserDetailsService {
 
     private final UserRepository userRepository;
-    private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+    private final PasswordEncoder passwordEncoder;
 
-    @Autowired
-    public UserServiceImpl(UserRepository userRepository) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+    public void add(User user) {
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        userRepository.save(user);
     }
 
-    @Override public List<User> getAllUsers() { return userRepository.findAll(); }
+    @Override
+    public void delete(Long id) {
+        User user = get(id);
+        if (user == null) {
+            throw new EntityNotFoundException("User with id " + id + " not found");
+        }
+        userRepository.delete(user);
+    }
 
-    @Override public User getUserById(long id) {
+    @Override
+    public User get(Long id) {
         return userRepository.findById(id).orElse(null);
     }
 
-    @Override public void saveUser(User user) {
-        user.setPassword(encoder.encode(user.getPassword()));
-        userRepository.save(user);
+    @Override
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
     }
 
-    @Override public void updateUser(User user) {
+    @Override
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + email));
+    }
 
-        if (user.getPassword() == null || user.getPassword().isEmpty()) {
-            User existing = getUserById(user.getId());
-            if (existing != null) user.setPassword(existing.getPassword());
-        } else {
-            user.setPassword(encoder.encode(user.getPassword()));
+    @Override
+    public void assignRoles(User user, Set<Long> roleIds) {
+        // можно реализовать позже
+    }
+
+    @Override
+    public void update(Long id, User updatedUser) {
+        User existingUser = get(id);
+        if (existingUser != null) {
+            existingUser.setUsername(updatedUser.getUsername());
+            existingUser.setSurname(updatedUser.getSurname());
+            existingUser.setAge(updatedUser.getAge());
+            existingUser.setPassword(passwordEncoder.encode(updatedUser.getPassword()));
+            existingUser.setRoles(updatedUser.getRoles());
+            userRepository.save(existingUser);
         }
-        userRepository.save(user);
     }
 
-    @Override public void deleteUser(long id) { userRepository.deleteById(id); }
-
-    @Override public User findByUsername(String username) {
-        return userRepository.findByUsername(username).orElse(null);
+    @Override
+    @Transactional(readOnly = true)
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
     }
 
-    public void saveOrUpdate(User user) {
-        if (user.getPassword() == null || user.getPassword().isEmpty()) {
-            User existing = getUserById(user.getId());
-            if (existing != null) user.setPassword(existing.getPassword());
-        } else {
-            user.setPassword(encoder.encode(user.getPassword()));
-        }
-        userRepository.save(user);
-    }
 }

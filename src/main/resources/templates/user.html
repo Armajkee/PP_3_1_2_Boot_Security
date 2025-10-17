@@ -1,22 +1,18 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>User Page</title>
 </head>
 <body>
-<h2 style="text-align:center;">User Page</h2>
-<div style="width:400px; margin:auto; padding:20px; border:1px solid #ccc; border-radius:8px;">
-    <p><b>ID:</b> <span th:text="${user.id}"></span></p>
-    <p><b>Username:</b> <span th:text="${user.username}"></span></p>
-    <p><b>Name:</b> <span th:text="${user.name}"></span></p>
-    <p><b>Email:</b> <span th:text="${user.email}"></span></p>
-    <p><b>Roles:</b>
-        <span th:each="r : ${user.roles}" th:text="${r.name} + ' '"></span>
-    </p>
-    <form th:action="@{/logout}" method="post" style="text-align:center;">
-        <button type="submit" style="padding:5px 10px;">Sign Out</button>
-    </form>
-</div>
+<h2>Welcome, User!</h2>
+<p>You are logged in as <b th:text="${user.email}">user email</b></p>
+
+<h3>Your Roles:</h3>
+<ul>
+    <li th:each="role : ${user.roles}" th:text="${role}">ROLE</li>
+</ul>
+
+<p><a href="/logout">Logout</a></p>
 </body>
 </html>
