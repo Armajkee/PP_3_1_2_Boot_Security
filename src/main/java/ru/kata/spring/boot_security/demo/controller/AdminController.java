@@ -23,6 +23,7 @@ public class AdminController {
     @GetMapping
     public String showAllUsers(Model model) {
         model.addAttribute("users", userService.getAllUsers());
+        model.addAttribute("user", new User());
         model.addAttribute("allRoles", roleService.getAllRoles());
         return "admin/list";
     }
@@ -35,7 +36,8 @@ public class AdminController {
     }
 
     @PostMapping("/users")
-    public String createUser(@ModelAttribute User user, @RequestParam(required = false) List<Long> roles) {
+    public String createUser(@ModelAttribute User user,
+                             @RequestParam(required = false) List<Long> roles) {
         Set<Long> roleIds = roles == null ? Set.of() : new HashSet<>(roles);
         userService.assignRoles(user, roleIds);
         userService.add(user);
@@ -54,15 +56,13 @@ public class AdminController {
     public String updateUser(@PathVariable Long id, @ModelAttribute User user,
                              @RequestParam(required = false) List<Long> roles) {
         Set<Long> roleIds = roles == null ? Set.of() : new HashSet<>(roles);
-        user.setRoles(new HashSet<>()); // avoid stale roles
         userService.assignRoles(user, roleIds);
         userService.update(id, user);
         return "redirect:/admin";
     }
 
     @PostMapping("/users/{id}/delete")
-    public String deleteUser(@PathVariable Long id, Model model) {
-        // Optionally add confirmation logic
+    public String deleteUser(@PathVariable Long id) {
         userService.delete(id);
         return "redirect:/admin";
     }

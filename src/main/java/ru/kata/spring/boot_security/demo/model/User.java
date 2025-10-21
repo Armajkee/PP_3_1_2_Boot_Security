@@ -8,16 +8,15 @@ import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.io.Serial;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Table(name = "users")
-@EqualsAndHashCode(of = "id")
 public class User implements UserDetails {
 
     @Id
@@ -25,19 +24,20 @@ public class User implements UserDetails {
     private Long id;
 
     @Column(nullable = false)
-    private String username;
+    private String name;
 
     @Column(nullable = false)
     private String surname;
 
+    @Column(nullable = false)
     private Integer age;
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Email should be valid")
+    @NotBlank
+    @Email
     @Column(unique = true, nullable = false)
     private String email;
 
-    @NotBlank(message = "Password is required")
+    @NotBlank
     @Column(nullable = false)
     private String password;
 
@@ -49,15 +49,14 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return roles.stream()
-                .map(role -> (GrantedAuthority) role::getName)
-                .collect(Collectors.toList());
+        return roles;
     }
 
     @Override
     public String getUsername() {
         return email;
     }
+
 
     @Override public boolean isAccountNonExpired() {
         return true;
@@ -66,7 +65,6 @@ public class User implements UserDetails {
     @Override public boolean isAccountNonLocked() {
         return true;
     }
-
     @Override public boolean isCredentialsNonExpired() {
         return true;
     }
@@ -76,12 +74,27 @@ public class User implements UserDetails {
     }
 
     public String getRolesAsString() {
-        return roles.stream()
-                .map(Role::getName)
-                .collect(Collectors.joining(", "));
+        return roles.stream().map(Role::getName).collect(Collectors.joining(", "));
     }
 
-    @Serial
-    private static final long serialVersionUID = 1L;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User user)) return false;
+        return Objects.equals(id, user.id);
+    }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+
+    @Override
+    public String toString() {
+        return "User{id=" + id +
+                ", name='" + name + '\'' +
+                ", surname='" + surname + '\'' +
+                ", email='" + email + '\'' +
+                ", roles=" + getRolesAsString() + '}';
+    }
 }
