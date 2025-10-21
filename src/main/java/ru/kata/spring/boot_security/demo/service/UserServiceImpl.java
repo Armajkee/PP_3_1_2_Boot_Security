@@ -1,48 +1,64 @@
 package ru.kata.spring.boot_security.demo.service;
 
 import javax.persistence.*;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.kata.spring.boot_security.demo.model.Role;
 import ru.kata.spring.boot_security.demo.model.User;
+import ru.kata.spring.boot_security.demo.repository.RoleRepository;
 import ru.kata.spring.boot_security.demo.repository.UserRepository;
 
+
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
-@Transactional
-public class UserServiceImpl implements UserService, UserDetailsService {
+@RequiredArgsConstructor
+public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
-
     @Override
+    @Transactional
     public void add(User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         userRepository.save(user);
     }
 
     @Override
-    public void delete(Long id) {
-        User user = get(id);
-        if (user == null) {
-            throw new EntityNotFoundException("User with id " + id + " not found");
+    @Transactional
+    public void update(Long id, User updatedUser) {
+        User existing = get(id);
+        if (existing != null) {
+            existing.setName(updatedUser.getName());
+            existing.setSurname(updatedUser.getSurname());
+            existing.setAge(updatedUser.getAge());
+
+            if (updatedUser.getPassword() != null && !updatedUser.getPassword().isBlank()) {
+                existing.setPassword(passwordEncoder.encode(updatedUser.getPassword()));
+            }
+
+            existing.setRoles(updatedUser.getRoles());
+            userRepository.save(existing);
         }
-        userRepository.delete(user);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        userRepository.deleteById(id);
     }
 
     @Override
     public User get(Long id) {
-        return userRepository.findById(id).orElse(null);
+        return userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("User not found"));
     }
 
     @Override
@@ -51,34 +67,22 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Override
+    @Transactional
+    public void assignRoles(User user, Set<Long> roleIds) {
+        if (roleIds == null || roleIds.isEmpty()) {
+            user.setRoles(new HashSet<>());
+            return;
+        }
+        Set<Role> roles = roleIds.stream()
+                .map(id -> roleRepository.findById(id)
+                        .orElseThrow(() -> new EntityNotFoundException("Role not found: " + id)))
+                .collect(Collectors.toSet());
+        user.setRoles(roles);
+    }
+
+    @Override
     public User findByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + email));
     }
-
-    @Override
-    public void assignRoles(User user, Set<Long> roleIds) {
-        // можно реализовать позже
-    }
-
-    @Override
-    public void update(Long id, User updatedUser) {
-        User existingUser = get(id);
-        if (existingUser != null) {
-            existingUser.setUsername(updatedUser.getUsername());
-            existingUser.setSurname(updatedUser.getSurname());
-            existingUser.setAge(updatedUser.getAge());
-            existingUser.setPassword(passwordEncoder.encode(updatedUser.getPassword()));
-            existingUser.setRoles(updatedUser.getRoles());
-            userRepository.save(existingUser);
-        }
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
-    }
-
 }

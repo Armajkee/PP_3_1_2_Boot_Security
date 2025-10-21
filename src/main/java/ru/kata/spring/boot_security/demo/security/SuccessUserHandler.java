@@ -1,4 +1,4 @@
-package ru.kata.spring.boot_security.demo.configs;
+package ru.kata.spring.boot_security.demo.security;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -35,11 +35,10 @@ public class SuccessUserHandler implements AuthenticationSuccessHandler {
                 .findFirst()
                 .orElse("/");
 
-        try {
-            response.sendRedirect(redirectUrl);
-        } catch (IOException e) {
-            log.error("Redirection failed for user {}", authentication.getName(), e);
-            throw e;
+        if (redirectUrl.equals("/")) {
+            log.warn("No redirect found for roles: {}", roles);
         }
+
+        response.sendRedirect(redirectUrl);
     }
 }

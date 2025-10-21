@@ -89,6 +89,12 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Thymeleaf extras for Spring Security -->
+        <dependency>
+            <groupId>org.thymeleaf.extras</groupId>
+            <artifactId>thymeleaf-extras-springsecurity5</artifactId>
+        </dependency>
+
     </dependencies>
 
 	<build>
