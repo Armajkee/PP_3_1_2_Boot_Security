@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.kata.spring.boot_security.demo.model.Role;
 import ru.kata.spring.boot_security.demo.model.User;
+import ru.kata.spring.boot_security.demo.model.UserDTO;
 import ru.kata.spring.boot_security.demo.repository.RoleRepository;
 import ru.kata.spring.boot_security.demo.repository.UserRepository;
 
@@ -84,5 +85,45 @@ public class UserServiceImpl implements UserService {
     public User findByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + email));
+    }
+
+    @Override
+    @Transactional
+    public User createUser(UserDTO dto) {
+        User user = new User();
+
+        user.setName(dto.getName());
+        user.setSurname(dto.getSurname());
+        user.setAge(dto.getAge());
+        user.setEmail(dto.getEmail());
+
+        // шифруем пароль
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+
+        // роли
+        assignRoles(user, dto.getRoles());
+
+        return userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public User updateUserFromDto(Long id, UserDTO dto) {
+        User existing = get(id);
+
+        existing.setName(dto.getName());
+        existing.setSurname(dto.getSurname());
+        existing.setAge(dto.getAge());
+        existing.setEmail(dto.getEmail());
+
+        // если пароль пришёл — меняем, иначе игнорируем
+        if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
+            existing.setPassword(passwordEncoder.encode(dto.getPassword()));
+        }
+
+        // роли
+        assignRoles(existing, dto.getRoles());
+
+        return userRepository.save(existing);
     }
 }
